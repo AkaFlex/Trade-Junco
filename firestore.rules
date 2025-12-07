@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Check if the user is authenticated as an Admin via Firebase Auth
+    function isAdmin() {
+       return request.auth != null && (
+         request.auth.token.email == 'mateus.silva@junco.com.br' || 
+         request.auth.token.email == 'cissia.souza@junco.com.br'
+       );
+    }
+
+    // --- REQUESTS COLLECTION ---
+    match /requests/{requestId} {
+      // 1. Admins have full access
+      allow read, write: if isAdmin();
+      
+      // 2. PUBLIC/RCA ACCESS (No Login Requirement)
+      // Allow creation of new requests by anyone (RCA)
+      allow create: if true;
+      
+      // Allow reading/updating if you know the exact ID or query (Simplified for "No Login")
+      // In a strict environment, we would validate the email, but for this use case:
+      allow read: if true;
+      allow update: if true; 
+    }
+    
+    // --- BUDGETS COLLECTION ---
+    match /budgets/{budgetId} {
+      // Budgets are public to read (for validation) but only writable by Admin
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // --- USERS COLLECTION ---
+    match /users/{userId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
