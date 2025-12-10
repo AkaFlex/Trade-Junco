@@ -5,6 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Junco Trade Manager</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -12,28 +14,35 @@
           extend: {
             colors: {
               brand: {
-                red: '#B91C1C', // Junco Red
-                purple: '#6B21A8', // Admin Purple
+                red: '#B91C1C', 
+                purple: '#6B21A8',
               }
             }
           }
         }
       }
     </script>
-  <script type="importmap">
-{
-  "imports": {
-    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0"
-  }
-}
-</script>
-</head>
+
+    <!-- MAPA DE IMPORTAÇÃO LIMPO (Sem versões conflitantes) -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.3.1",
+        "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1",
+        "firebase/app": "https://esm.sh/firebase@10.13.1/app",
+        "firebase/auth": "https://esm.sh/firebase@10.13.1/auth?deps=firebase@10.13.1",
+        "firebase/firestore": "https://esm.sh/firebase@10.13.1/firestore?deps=firebase@10.13.1",
+        "firebase/storage": "https://esm.sh/firebase@10.13.1/storage?deps=firebase@10.13.1",
+        "lucide-react": "https://esm.sh/lucide-react@0.263.1?deps=react@18.3.1",
+        "recharts": "https://esm.sh/recharts@2.12.7?deps=react@18.3.1"
+      }
+    }
+    </script>
+  </head>
   <body class="bg-gray-50 text-gray-900">
     <div id="root"></div>
+    
+    <!-- ESTA LINHA É OBRIGATÓRIA PARA O APP RODAR -->
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>
