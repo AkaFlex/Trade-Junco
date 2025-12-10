@@ -9,21 +9,17 @@ import { UserProfile, ADMIN_EMAILS } from './types';
 import { LogOut, User, Shield, ArrowRight, Utensils } from 'lucide-react';
 
 const App: React.FC = () => {
-  // Current active user (Admin via Auth, or RCA via simple state)
   const [user, setUser] = useState<UserProfile | null>(null);
   
-  // Login State
   const [viewMode, setViewMode] = useState<'landing' | 'admin-login'>('landing');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Check for existing Admin session on load
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       if (authUser) {
-        // Verify Admin Status
         if (ADMIN_EMAILS.includes(authUser.email || '')) {
           setUser({
             uid: authUser.uid,
@@ -41,17 +37,15 @@ const App: React.FC = () => {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Auth observer will handle the rest
     } catch (err) {
       setError("Credenciais inválidas.");
     }
   };
 
   const handleRCAAccess = () => {
-    // Direct access for RCA, no email required initially
     setUser({
       uid: 'guest_' + Date.now(),
-      email: '', // Empty initially, will be asked in form or history search
+      email: '',
       role: 'rca'
     });
   };
@@ -84,16 +78,15 @@ const App: React.FC = () => {
   if (user) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
-        <nav className={`${user.role === 'admin' ? 'bg-brand-purple' : user.role === 'promoter' ? 'bg-pink-600' : 'bg-brand-red'} text-white shadow-lg`}>
+        <nav className={`${user.role === 'admin' ? 'bg-brand-purple' : user.role === 'promoter' ? 'bg-pink-600' : 'bg-brand-red'} text-white shadow-lg sticky top-0 z-50`}>
           <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="bg-white p-1 rounded-md">
-                {/* Logo Placeholder */}
+              <div className="bg-white p-1 rounded-md shrink-0">
                 <div className={`w-6 h-6 rounded-full ${user.role === 'admin' ? 'bg-brand-purple' : user.role === 'promoter' ? 'bg-pink-600' : 'bg-brand-red'}`}></div>
               </div>
-              <div>
-                <h1 className="font-bold text-lg leading-tight tracking-wide">JUNCO TRADE</h1>
-                <p className="text-[10px] opacity-80 uppercase tracking-widest">
+              <div className="min-w-0">
+                <h1 className="font-bold text-base md:text-lg leading-tight tracking-wide truncate">JUNCO TRADE</h1>
+                <p className="text-[10px] opacity-80 uppercase tracking-widest truncate">
                     {user.role === 'admin' ? 'Gestão Estratégica' : user.role === 'promoter' ? 'Painel da Degustadora' : 'Painel do Vendedor'}
                 </p>
               </div>
@@ -102,9 +95,9 @@ const App: React.FC = () => {
               {user.email && <span className="text-sm hidden md:inline opacity-90">{user.email}</span>}
               <button 
                 onClick={handleLogout}
-                className="flex items-center gap-1 bg-black/20 px-3 py-1.5 rounded hover:bg-black/30 transition text-sm font-medium"
+                className="flex items-center gap-1 bg-black/20 px-3 py-1.5 rounded hover:bg-black/30 transition text-sm font-medium whitespace-nowrap"
               >
-                <LogOut size={16} /> Sair
+                <LogOut size={16} /> <span className="hidden sm:inline">Sair</span>
               </button>
             </div>
           </div>
@@ -125,18 +118,18 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center p-6">
         <div className="max-w-4xl w-full grid md:grid-cols-2 bg-white rounded-3xl shadow-2xl overflow-hidden">
           
-          <div className="bg-brand-red p-12 text-white flex flex-col justify-center items-start relative overflow-hidden">
+          <div className="bg-brand-red p-8 md:p-12 text-white flex flex-col justify-center items-start relative overflow-hidden">
             <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 left-0 -ml-10 -mb-10 w-40 h-40 bg-black/10 rounded-full blur-3xl"></div>
             
-            <h1 className="text-4xl font-extrabold mb-4">Trade Manager</h1>
-            <p className="text-red-100 text-lg mb-8 leading-relaxed">
+            <h1 className="text-3xl md:text-4xl font-extrabold mb-4">Trade Manager</h1>
+            <p className="text-red-100 text-base md:text-lg mb-8 leading-relaxed">
               Gestão inteligente de verbas, execuções e relatórios de Trade Marketing.
             </p>
             <div className="w-12 h-1 bg-white rounded-full opacity-50"></div>
           </div>
 
-          <div className="p-12 flex flex-col justify-center space-y-4 bg-white">
+          <div className="p-8 md:p-12 flex flex-col justify-center space-y-4 bg-white">
             <div className="text-center md:text-left mb-2">
               <h2 className="text-2xl font-bold text-gray-800">Bem-vindo</h2>
               <p className="text-gray-500">Selecione seu perfil para continuar</p>
@@ -146,7 +139,7 @@ const App: React.FC = () => {
               onClick={handleRCAAccess}
               className="group relative w-full flex items-center p-4 border-2 border-gray-100 rounded-xl hover:border-brand-red hover:bg-red-50 transition-all duration-300"
             >
-              <div className="bg-red-100 p-3 rounded-full text-brand-red group-hover:scale-110 transition-transform">
+              <div className="bg-red-100 p-3 rounded-full text-brand-red group-hover:scale-110 transition-transform shrink-0">
                 <User size={24} />
               </div>
               <div className="ml-4 text-left flex-1">
@@ -160,7 +153,7 @@ const App: React.FC = () => {
               onClick={handlePromoterAccess}
               className="group relative w-full flex items-center p-4 border-2 border-gray-100 rounded-xl hover:border-pink-500 hover:bg-pink-50 transition-all duration-300"
             >
-              <div className="bg-pink-100 p-3 rounded-full text-pink-600 group-hover:scale-110 transition-transform">
+              <div className="bg-pink-100 p-3 rounded-full text-pink-600 group-hover:scale-110 transition-transform shrink-0">
                 <Utensils size={24} />
               </div>
               <div className="ml-4 text-left flex-1">
@@ -174,7 +167,7 @@ const App: React.FC = () => {
               onClick={() => { setViewMode('admin-login'); setError(''); setEmail(''); }}
               className="group relative w-full flex items-center p-4 border-2 border-gray-100 rounded-xl hover:border-brand-purple hover:bg-purple-50 transition-all duration-300"
             >
-              <div className="bg-purple-100 p-3 rounded-full text-brand-purple group-hover:scale-110 transition-transform">
+              <div className="bg-purple-100 p-3 rounded-full text-brand-purple group-hover:scale-110 transition-transform shrink-0">
                 <Shield size={24} />
               </div>
               <div className="ml-4 text-left flex-1">

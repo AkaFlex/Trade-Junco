@@ -8,7 +8,8 @@ import {
   doc, 
   updateDoc,
   setDoc,
-  getDoc
+  getDoc,
+  writeBatch
 } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { TradeRequest, RegionalBudget, Region } from "../types";
@@ -69,6 +70,43 @@ export const getAllBudgets = async () => {
   return snapshot.docs.map(d => d.data() as RegionalBudget);
 };
 
+// Automatic Expiration Logic
+// Checks for 'approved' requests where dateOfAction is in a previous month relative to now.
+export const checkAndExpireRequests = async () => {
+  try {
+    const today = new Date();
+    const currentMonth = today.toISOString().slice(0, 7); // YYYY-MM
+
+    // Query all APPROVED requests
+    // We cannot query by dateOfAction range easily without composite indexes, so we filter in memory
+    const q = query(collection(db, "requests"), where("status", "==", "approved"));
+    const snapshot = await getDocs(q);
+
+    const batch = writeBatch(db);
+    let count = 0;
+
+    snapshot.docs.forEach((d) => {
+      const data = d.data() as TradeRequest;
+      // If dateOfAction exists and is less than current month (string comparison works for ISO YYYY-MM)
+      if (data.dateOfAction && data.dateOfAction.slice(0, 7) < currentMonth) {
+        const ref = doc(db, "requests", d.id);
+        batch.update(ref, { 
+          status: 'expired',
+          rejectionReason: 'Vencimento Automático: Ação não realizada dentro do mês de competência.'
+        });
+        count++;
+      }
+    });
+
+    if (count > 0) {
+      await batch.commit();
+      console.log(`[AUTO-EXPIRE] ${count} solicitações vencidas foram atualizadas.`);
+    }
+  } catch (e) {
+    console.error("[AUTO-EXPIRE] Erro ao verificar vencimentos:", e);
+  }
+};
+
 // FUNÇÃO ULTRA-BLINDADA CONTRA FALHAS
 export const checkBudgetAvailability = async (region: Region, month: string, requestValue: number): Promise<{allowed: boolean, message: string}> => {
   try {
@@ -107,6 +145,7 @@ export const checkBudgetAvailability = async (region: Region, month: string, req
       try {
         const data = d.data() as TradeRequest;
         // Verifica se pertence ao mês correto (string comparison 'YYYY-MM')
+        // OBS: Itens 'expired' não entram aqui pois o status não é 'approved'
         if (data.dateOfAction && typeof data.dateOfAction === 'string' && data.dateOfAction.startsWith(safeMonth)) {
           used += Number(data.totalValue) || 0;
         }

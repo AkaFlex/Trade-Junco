@@ -24,7 +24,7 @@ export const REGIONS = [
 
 export type Region = typeof REGIONS[number];
 
-export type RequestStatus = 'pending' | 'approved' | 'rejected' | 'completed' | 'paid' | 'blocked_volume';
+export type RequestStatus = 'pending' | 'approved' | 'rejected' | 'completed' | 'paid' | 'blocked_volume' | 'expired';
 
 export interface ProductCount {
   name: string;

@@ -4,7 +4,7 @@ import { TradeRequest, UserProfile } from '../types';
 import { getRequestsByUser } from '../services/tradeService';
 import { RequestWizard } from './RequestWizard';
 import { ExecutionView } from './ExecutionView';
-import { PlusCircle, FileText, CheckCircle, AlertCircle, Clock, XCircle, Search, History, Ban, Calendar, Store, DollarSign, FileSpreadsheet, Check, Eye } from 'lucide-react';
+import { PlusCircle, FileText, CheckCircle, AlertCircle, Clock, XCircle, Search, History, Ban, Calendar, Store, DollarSign, FileSpreadsheet, Check, Eye, ArchiveX } from 'lucide-react';
 
 interface Props {
   user: UserProfile;
@@ -63,14 +63,14 @@ export const RCAPanel: React.FC<Props> = ({ user }) => {
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
       
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-brand-red to-red-800 rounded-2xl p-8 text-white shadow-xl mb-10 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Painel de Ações</h1>
-          <p className="text-red-100 opacity-90">Crie novas solicitações de trade marketing ou acompanhe seus pedidos.</p>
+      <div className="bg-gradient-to-r from-brand-red to-red-800 rounded-2xl p-6 md:p-8 text-white shadow-xl mb-10 flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="text-center md:text-left">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Painel de Ações</h1>
+          <p className="text-red-100 opacity-90 text-sm md:text-base">Crie novas solicitações de trade marketing ou acompanhe seus pedidos.</p>
         </div>
         <button 
           onClick={() => setMode('new')}
-          className="bg-white text-brand-red px-8 py-4 rounded-xl flex items-center gap-3 hover:bg-gray-100 transition shadow-lg transform hover:-translate-y-1 font-bold text-lg"
+          className="bg-white text-brand-red px-6 md:px-8 py-3 md:py-4 rounded-xl flex items-center gap-3 hover:bg-gray-100 transition shadow-lg transform hover:-translate-y-1 font-bold text-sm md:text-lg whitespace-nowrap"
         >
           <PlusCircle size={24} />
           NOVA SOLICITAÇÃO
@@ -122,30 +122,31 @@ export const RCAPanel: React.FC<Props> = ({ user }) => {
                  req.status === 'rejected' ? 'bg-red-500' :
                  req.status === 'completed' ? 'bg-purple-500' :
                  req.status === 'blocked_volume' ? 'bg-gray-400' :
+                 req.status === 'expired' ? 'bg-gray-600' :
                  'bg-yellow-400'
                }`}></div>
 
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pl-4">
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-3">
+                <div className="flex-1 space-y-2 w-full">
+                  <div className="flex items-center gap-3 flex-wrap">
                      <span className="font-bold text-gray-800 text-lg">
                       {req.partnerCode}
                      </span>
                      <span className="text-gray-400 text-sm font-medium bg-gray-50 px-2 py-0.5 rounded">{req.region}</span>
                   </div>
                   
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                  <div className="flex flex-wrap items-center gap-2 md:gap-4 text-sm text-gray-500">
                     <div className="flex items-center gap-1.5" title="Data Prevista da Ação">
                       <Clock size={14} className="text-gray-400"/>
                       <span className="text-gray-700">{new Date(req.dateOfAction).toLocaleDateString()}</span>
                     </div>
-                    <span className="text-gray-300">•</span>
+                    <span className="hidden md:inline text-gray-300">•</span>
                     <div className="flex items-center gap-1.5">
                       <span>{req.days} dia(s) de ação</span>
                     </div>
                     {req.orderDate && (
                       <>
-                        <span className="text-gray-300">•</span>
+                        <span className="hidden md:inline text-gray-300">•</span>
                         <div className="flex items-center gap-1.5" title="Data do Pedido">
                            <FileSpreadsheet size={14} className="text-gray-400"/>
                            <span className="text-gray-700">Pedido: {new Date(req.orderDate).toLocaleDateString()}</span>
@@ -155,20 +156,20 @@ export const RCAPanel: React.FC<Props> = ({ user }) => {
                   </div>
 
                   {req.rejectionReason && (
-                    <div className="mt-2 flex items-start gap-2 bg-red-50 text-red-700 text-xs p-3 rounded-lg border border-red-100 max-w-lg">
+                    <div className="mt-2 flex items-start gap-2 bg-gray-50 text-gray-600 text-xs p-3 rounded-lg border border-gray-100 max-w-lg">
                       <AlertCircle size={14} className="mt-0.5 shrink-0"/>
                       <span><strong>Motivo:</strong> {req.rejectionReason}</span>
                     </div>
                   )}
                 </div>
                 
-                <div className="flex flex-col items-end gap-3 min-w-[140px]">
+                <div className="flex flex-row md:flex-col items-center md:items-end gap-3 w-full md:w-auto justify-between md:justify-center">
                   <StatusBadge status={req.status} />
 
                   {(req.status === 'approved' || req.status === 'completed') && (
                     <button 
                       onClick={() => handleOpenExecution(req)}
-                      className={`text-sm px-5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-sm w-full justify-center font-bold ${req.status === 'approved' ? 'bg-brand-red text-white hover:bg-red-800' : 'bg-gray-800 text-white hover:bg-black'}`}
+                      className={`text-sm px-5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-sm font-bold ${req.status === 'approved' ? 'bg-brand-red text-white hover:bg-red-800' : 'bg-gray-800 text-white hover:bg-black'}`}
                     >
                       {req.status === 'approved' ? (
                           <><FileText size={16} /> Relatórios</>
@@ -194,7 +195,8 @@ const StatusBadge = ({ status }: { status: string }) => {
     rejected: 'bg-red-50 text-red-700 border-red-200 ring-1 ring-red-100',
     completed: 'bg-purple-50 text-purple-700 border-purple-200 ring-1 ring-purple-100',
     paid: 'bg-emerald-600 text-white border-emerald-700 shadow-md ring-1 ring-emerald-600',
-    blocked_volume: 'bg-gray-100 text-gray-600 border-gray-200 ring-1 ring-gray-100'
+    blocked_volume: 'bg-gray-100 text-gray-600 border-gray-200 ring-1 ring-gray-100',
+    expired: 'bg-gray-700 text-white border-gray-600 ring-1 ring-gray-500'
   };
 
   const labels: Record<string, any> = {
@@ -204,6 +206,7 @@ const StatusBadge = ({ status }: { status: string }) => {
     completed: <><FileText size={14}/> Aguardando Pagamento</>,
     paid: <><Check size={16} strokeWidth={3} /> PAGO</>,
     blocked_volume: <><Ban size={14}/> Bloqueado</>,
+    expired: <><ArchiveX size={14}/> Prazo Expirado</>
   };
 
   return (

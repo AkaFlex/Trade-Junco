@@ -72,12 +72,25 @@ export const RequestWizard: React.FC<Props> = ({ user, onCancel, onSuccess }) =>
   };
 
   const handleCreate = async () => {
-    if (!formData.partnerCode || !formData.date || !formData.orderDate || !formData.rcaName || !formData.rcaEmail || !formData.rcaPhone) {
-      alert("Por favor, preencha todos os campos obrigatórios.");
-      return;
+    // 1. STRICT VALIDATION
+    if (!formData.rcaName.trim()) return alert("Nome do RCA é obrigatório.");
+    if (!formData.rcaEmail.trim()) return alert("E-mail do RCA é obrigatório.");
+    if (!formData.rcaPhone.trim()) return alert("Telefone do RCA é obrigatório.");
+    
+    if (!formData.partnerCode.trim()) return alert("Código do Parceiro é obrigatório.");
+    if (!formData.region) return alert("Região é obrigatória.");
+    
+    if (!formData.orderDate) return alert("Data do Pedido é obrigatória.");
+    if (!formData.date) return alert("Data da Ação é obrigatória.");
+    
+    if (formData.days < 1) return alert("Quantidade de dias inválida.");
+    
+    // Justification Check
+    if (formData.days > 1 && !formData.justification.trim()) {
+        return alert("Para ações com mais de 1 dia, a justificativa é obrigatória.");
     }
 
-    // 5-DAY LOCK CHECK
+    // 2. 5-DAY LOCK CHECK
     const actionDate = new Date(formData.date);
     const today = new Date();
     // Reset hours to compare only dates
@@ -144,7 +157,7 @@ export const RequestWizard: React.FC<Props> = ({ user, onCancel, onSuccess }) =>
                       Para solicitar a bandeja e avental para a degustação é necessário solicitar no sistema <strong>Vidya</strong>.
                     </p>
                     <p className="text-red-700 text-sm leading-relaxed">
-                      Vincule <strong>CONCESSÃO PROMOÇÃO (Op. 241)</strong> no pedido:
+                      Vincule <strong>CONCESSÃO PROMOÇÃO (TOP. 241)</strong> no pedido:
                     </p>
                     <ul className="list-disc ml-5 mt-2 text-red-800 font-bold text-sm">
                       <li>Cod 199307 - AVENTAL DEGUSTACAO</li>
@@ -196,26 +209,28 @@ export const RequestWizard: React.FC<Props> = ({ user, onCancel, onSuccess }) =>
                     </h3>
                     <div className="grid md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Nome Completo</label>
+                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Nome Completo *</label>
                             <input 
                                 className="w-full bg-white border border-gray-200 p-2 rounded focus:ring-2 focus:ring-brand-red outline-none"
                                 value={formData.rcaName}
                                 onChange={e => setFormData({...formData, rcaName: e.target.value})}
                                 placeholder="Seu nome"
+                                required
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">E-mail</label>
+                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">E-mail *</label>
                             <input 
                                 type="email"
                                 className="w-full bg-white border border-gray-200 p-2 rounded focus:ring-2 focus:ring-brand-red outline-none"
                                 value={formData.rcaEmail}
                                 onChange={e => setFormData({...formData, rcaEmail: e.target.value})}
                                 placeholder="seu.email@junco.com.br"
+                                required
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">WhatsApp</label>
+                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">WhatsApp *</label>
                             <div className="relative">
                                 <Phone size={16} className="absolute left-3 top-3 text-gray-400"/>
                                 <input 
@@ -224,6 +239,7 @@ export const RequestWizard: React.FC<Props> = ({ user, onCancel, onSuccess }) =>
                                     onChange={handlePhoneChange}
                                     placeholder="(XX) XXXXX-XXXX"
                                     maxLength={15}
+                                    required
                                 />
                             </div>
                         </div>
@@ -236,7 +252,7 @@ export const RequestWizard: React.FC<Props> = ({ user, onCancel, onSuccess }) =>
                     <AlertCircle size={20}/> Validação de Volume
                   </h3>
                   <p className="text-yellow-800 mb-6 text-sm">
-                    Este parceiro comprou <strong>R$ 5.000,00</strong> ou mais em produtos da categoria <strong>DOCERIA</strong>?
+                    Este parceiro comprou <strong>R$ 5.000,00</strong> ou mais em produtos da categoria <strong>DOCERIA</strong> no mês da ação?
                   </p>
                   
                   <div className="flex gap-4">
@@ -262,7 +278,7 @@ export const RequestWizard: React.FC<Props> = ({ user, onCancel, onSuccess }) =>
                     {/* PARTNER AND REGION */}
                     <div className="grid md:grid-cols-2 gap-4 mb-6">
                       <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Código do Parceiro</label>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Código do Parceiro *</label>
                         <div className="relative">
                             <Store size={16} className="absolute left-3 top-3.5 text-gray-400"/>
                             <input 
@@ -270,16 +286,18 @@ export const RequestWizard: React.FC<Props> = ({ user, onCancel, onSuccess }) =>
                               value={formData.partnerCode}
                               onChange={e => setFormData({...formData, partnerCode: e.target.value})}
                               placeholder="000000"
+                              required
                             />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Região</label>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Região *</label>
                         <select 
                           className="w-full bg-gray-50 border border-gray-200 p-3 rounded-lg focus:ring-2 focus:ring-brand-red outline-none"
                           value={formData.region}
                           onChange={e => setFormData({...formData, region: e.target.value as any})}
+                          required
                         >
                           {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
@@ -293,7 +311,7 @@ export const RequestWizard: React.FC<Props> = ({ user, onCancel, onSuccess }) =>
                         
                         <div className="grid grid-cols-2 gap-4 mb-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data do Pedido (Lançamento)</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data do Pedido de Doces *</label>
                                 <div className="relative">
                                   <FileSpreadsheet size={16} className="absolute left-3 top-3.5 text-gray-400"/>
                                   <input 
@@ -301,11 +319,12 @@ export const RequestWizard: React.FC<Props> = ({ user, onCancel, onSuccess }) =>
                                     className="w-full bg-white border border-gray-200 p-3 pl-10 rounded-lg focus:ring-2 focus:ring-brand-red outline-none"
                                     value={formData.orderDate}
                                     onChange={e => setFormData({...formData, orderDate: e.target.value})}
+                                    required
                                   />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Prevista da Ação</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Prevista da Ação *</label>
                                 <div className="relative">
                                   <Clock size={16} className="absolute left-3 top-3.5 text-gray-400"/>
                                   <input 
@@ -313,6 +332,7 @@ export const RequestWizard: React.FC<Props> = ({ user, onCancel, onSuccess }) =>
                                     className="w-full bg-white border border-gray-200 p-3 pl-10 rounded-lg focus:ring-2 focus:ring-brand-red outline-none"
                                     value={formData.date}
                                     onChange={e => setFormData({...formData, date: e.target.value})}
+                                    required
                                   />
                                 </div>
                                 <p className="text-[10px] text-gray-400 mt-1">*Mínimo 5 dias de antecedência</p>
@@ -320,32 +340,34 @@ export const RequestWizard: React.FC<Props> = ({ user, onCancel, onSuccess }) =>
                         </div>
 
                         <div className="mb-4">
-                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Dias de Ação</label>
+                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Dias de Ação *</label>
                                 <input 
                                 type="number"
                                 min="1" max="5"
                                 className="w-full bg-white border border-gray-200 p-3 rounded-lg focus:ring-2 focus:ring-brand-red outline-none"
                                 value={formData.days}
                                 onChange={e => setFormData({...formData, days: Number(e.target.value)})}
+                                required
                                 />
                         </div>
 
                         {formData.days > 1 && (
                         <div className="mb-6">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 text-blue-600">Justificativa Obrigatória (Mais de 1 dia)</label>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 text-blue-600">Justificativa Obrigatória (Mais de 1 dia) *</label>
                             <textarea 
                                 className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" 
                                 rows={3}
                                 placeholder="Descreva o motivo da ação estendida..."
                                 value={formData.justification}
                                 onChange={e => setFormData({...formData, justification: e.target.value})}
+                                required={formData.days > 1}
                             ></textarea>
                         </div>
                         )}
 
                         <button 
                         onClick={handleCreate}
-                        disabled={loading || !formData.partnerCode || !formData.date || !formData.orderDate || (formData.days > 1 && !formData.justification)}
+                        disabled={loading}
                         className="w-full bg-brand-red text-white py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-red-800 transition transform hover:-translate-y-1 disabled:opacity-50 disabled:translate-y-0"
                         >
                         {loading ? "Processando..." : "FINALIZAR SOLICITAÇÃO"}

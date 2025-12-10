@@ -13,7 +13,6 @@ interface Props {
 export const ExecutionView: React.FC<Props> = ({ request: initialRequest, onBack }) => {
   const [request, setRequest] = useState<TradeRequest>(initialRequest);
   
-  // RCA Only sees Finance/Execution, Sales reporting is done by Promoter
   const [pixData, setPixData] = useState({ 
       key: initialRequest.pixKey || '', 
       holder: initialRequest.pixHolder || '', 
@@ -26,7 +25,6 @@ export const ExecutionView: React.FC<Props> = ({ request: initialRequest, onBack
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>(initialRequest.photoUrls || (initialRequest.photoUrl ? [initialRequest.photoUrl] : []));
   const [uploadedReceipts, setUploadedReceipts] = useState<string[]>(initialRequest.receiptUrls || (initialRequest.receiptUrl ? [initialRequest.receiptUrl] : []));
 
-  // Determine Read-Only Mode
   const isReadOnly = request.status === 'completed' || request.status === 'paid';
 
   useEffect(() => {
@@ -56,7 +54,11 @@ export const ExecutionView: React.FC<Props> = ({ request: initialRequest, onBack
   }, [initialRequest.id]);
 
   const currentReports = request.salesReports || [];
-  const hasPromoterReport = currentReports.length > 0;
+  
+  // NEW LOGIC: Lock until ALL days are reported
+  const requiredDays = request.days || 1;
+  const submittedReportsCount = currentReports.length;
+  const isWorkFinished = submittedReportsCount >= requiredDays;
   
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let v = e.target.value.replace(/\D/g, '');
@@ -80,7 +82,7 @@ export const ExecutionView: React.FC<Props> = ({ request: initialRequest, onBack
     setUploading(true);
     setUploadProgress(0);
 
-    const files = Array.from(e.target.files);
+    const files: File[] = Array.from(e.target.files);
     let completed = 0;
     const total = files.length;
     const uploadedUrls: string[] = [];
@@ -160,7 +162,7 @@ export const ExecutionView: React.FC<Props> = ({ request: initialRequest, onBack
             pixKey: pixData.key,
             pixHolder: pixData.holder,
             pixCpf: pixData.cpf,
-            status: 'completed' // Explicitly setting status to 'completed' so it moves to Finance Tab
+            status: 'completed'
         });
         alert("Solicitação finalizada! Aguardando pagamento pelo setor financeiro.");
         onBack();
@@ -177,8 +179,8 @@ export const ExecutionView: React.FC<Props> = ({ request: initialRequest, onBack
           <ArrowLeft size={24} className="text-gray-700"/>
         </button>
         <div>
-           <div className="flex items-center gap-2">
-             <h1 className="text-2xl font-bold text-white bg-brand-red px-4 py-1 rounded-lg inline-block">Execução da Ação</h1>
+           <div className="flex flex-wrap items-center gap-2">
+             <h1 className="text-xl md:text-2xl font-bold text-white bg-brand-red px-4 py-1 rounded-lg inline-block">Execução da Ação</h1>
              {isReadOnly && (
                  <span className="bg-gray-800 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
                      <Lock size={12}/> Travado
@@ -192,12 +194,11 @@ export const ExecutionView: React.FC<Props> = ({ request: initialRequest, onBack
       {isReadOnly && (
           <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded shadow-sm">
             <div className="flex items-center gap-3">
-              <CheckCircle className="text-yellow-600" size={24} />
+              <CheckCircle className="text-yellow-600 shrink-0" size={24} />
               <div>
                 <p className="text-yellow-800 font-bold">Solicitação Finalizada</p>
                 <p className="text-yellow-700 text-sm">
-                    Você já enviou todos os dados. O processo está agora aguardando pagamento pelo setor financeiro. 
-                    Não é possível fazer mais alterações.
+                    Você já enviou todos os dados. O processo está agora aguardando pagamento pelo setor financeiro.
                 </p>
               </div>
             </div>
@@ -205,24 +206,36 @@ export const ExecutionView: React.FC<Props> = ({ request: initialRequest, onBack
       )}
 
       {/* LOCK SCREEN: WAITING FOR PROMOTER */}
-      {!isReadOnly && !hasPromoterReport && (
+      {!isReadOnly && !isWorkFinished && (
           <div className="bg-white rounded-2xl shadow-lg border border-red-100 p-8 text-center animate-in fade-in">
               <div className="bg-red-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                   <User size={40} className="text-red-500"/>
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">Aguardando Degustadora</h2>
               <p className="text-gray-500 max-w-lg mx-auto mb-6">
-                  Para liberar o preenchimento dos dados financeiros e upload de comprovantes, 
-                  é necessário que a <strong>Degustadora</strong> preencha primeiro o <strong>Relatório de Sell-Out</strong> desta ação.
+                  Esta ação foi solicitada para <strong>{requiredDays} dias</strong>. <br/>
+                  A degustadora precisa enviar os relatórios de todos os dias para liberar o seu financeiro.
               </p>
+              
+              {/* PROGRESS BAR */}
+              <div className="max-w-xs mx-auto mb-6">
+                 <div className="flex justify-between text-xs font-bold text-gray-400 mb-1">
+                     <span>Progresso</span>
+                     <span>{submittedReportsCount} / {requiredDays} dias</span>
+                 </div>
+                 <div className="w-full bg-gray-100 rounded-full h-3">
+                     <div className="bg-red-500 h-3 rounded-full transition-all duration-500" style={{width: `${Math.min((submittedReportsCount/requiredDays)*100, 100)}%`}}></div>
+                 </div>
+              </div>
+
               <div className="inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg text-gray-600 text-sm font-bold">
-                  <Lock size={16}/> Formulário Financeiro Bloqueado
+                  <Lock size={16}/> Financeiro Bloqueado
               </div>
           </div>
       )}
 
-      {/* FINANCE & EVIDENCE VIEW (Only if Promoter has reported OR if it's already finished/read-only) */}
-      {(hasPromoterReport || isReadOnly) && (
+      {/* FINANCE & EVIDENCE VIEW */}
+      {(isWorkFinished || isReadOnly) && (
       <div className="animate-in fade-in space-y-6">
           
           {/* Read Only view of Sell-Out Reports */}
@@ -230,16 +243,16 @@ export const ExecutionView: React.FC<Props> = ({ request: initialRequest, onBack
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                   <h4 className="font-bold text-gray-700 mb-3 border-b pb-2 flex items-center gap-2">
                       <CheckCircle size={18} className="text-green-600"/>
-                      Relatórios de Sell-Out (Preenchidos pela Degustadora)
+                      Relatórios de Sell-Out ({submittedReportsCount}/{requiredDays} dias)
                   </h4>
                   <div className="space-y-3">
                       {currentReports.map((r, i) => (
-                          <div key={i} className="flex justify-between items-center text-sm bg-gray-50 p-3 rounded-lg">
+                          <div key={i} className="flex flex-col md:flex-row justify-between items-start md:items-center text-sm bg-gray-50 p-3 rounded-lg gap-2">
                               <div>
                                   <div className="font-bold text-gray-800">{r.storeName}</div>
                                   <div className="text-xs text-gray-500">{new Date(r.date).toLocaleDateString()} • Vendedor: {r.sellerName}</div>
                               </div>
-                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold">Enviado</span>
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-bold shrink-0">Enviado</span>
                           </div>
                       ))}
                   </div>
@@ -270,7 +283,7 @@ export const ExecutionView: React.FC<Props> = ({ request: initialRequest, onBack
                         disabled={isReadOnly}
                       />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                           <label className="text-xs font-bold text-gray-400 uppercase">Nome Titular</label>
                           <input 
@@ -294,7 +307,7 @@ export const ExecutionView: React.FC<Props> = ({ request: initialRequest, onBack
               </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* PHOTOS UPLOAD */}
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-dashed relative">
                   <div className="text-center">

@@ -4,7 +4,7 @@ import { getRequestsByPartner } from '../services/tradeService';
 import { TradeRequest, PRODUCTS_LIST, SalesReport, ProductCount } from '../types';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import { Search, Store, Calendar, Save, CheckCircle, ArrowLeft, AlertCircle, Lock } from 'lucide-react';
+import { Search, Store, Calendar, Save, CheckCircle, ArrowLeft, AlertCircle, Lock, ListChecks } from 'lucide-react';
 
 export const PromoterPanel: React.FC = () => {
   const [partnerCode, setPartnerCode] = useState('');
@@ -17,22 +17,22 @@ export const PromoterPanel: React.FC = () => {
   const [sellerName, setSellerName] = useState('');
   const [counts, setCounts] = useState<ProductCount[]>(PRODUCTS_LIST.map(p => ({ name: p, qty: 0 })));
 
-  // Helper to check date string (YYYY-MM-DD)
-  const isReportedToday = (req: TradeRequest) => {
-      if (!req.salesReports || req.salesReports.length === 0) return false;
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      
-      return req.salesReports.some(r => {
-          // Handle both ISO strings and potential YYYY-MM-DD strings
-          const reportDate = r.date.includes('T') ? r.date.split('T')[0] : r.date;
-          return reportDate === today;
-      });
+  // Helper to check progress (Total Reports vs Requested Days)
+  const getReportStatus = (req: TradeRequest) => {
+      const current = req.salesReports?.length || 0;
+      const total = req.days || 1;
+      return {
+          current,
+          total,
+          isComplete: current >= total,
+          remaining: total - current
+      };
   };
 
-  // Check if a report has already been submitted today for this request (Detail View)
-  const hasReportedToday = useMemo(() => {
-      if (!selectedRequest) return false;
-      return isReportedToday(selectedRequest);
+  // Memoized status for selected request
+  const reportStatus = useMemo(() => {
+      if (!selectedRequest) return { current: 0, total: 1, isComplete: false, remaining: 1 };
+      return getReportStatus(selectedRequest);
   }, [selectedRequest]);
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -55,8 +55,8 @@ export const PromoterPanel: React.FC = () => {
     if (!storeName) return alert("Informe o nome da loja.");
     if (!sellerName) return alert("Informe o nome do vendedor.");
     
-    // Safety check again
-    if (hasReportedToday) return alert("Relatório já enviado hoje.");
+    // Safety check against total days
+    if (reportStatus.isComplete) return alert("Todos os relatórios para esta ação já foram enviados.");
 
     const newReport: SalesReport = {
       date: new Date().toISOString(),
@@ -71,9 +71,9 @@ export const PromoterPanel: React.FC = () => {
         salesReports: arrayUnion(newReport)
       });
       
-      alert(`✅ Relatório salvo com sucesso!`);
+      alert(`✅ Relatório (${reportStatus.current + 1}/${reportStatus.total}) salvo com sucesso!`);
       
-      // Update local state to show it immediately (locking the form)
+      // Update local state to show it immediately
       const updatedReq = { 
           ...selectedRequest, 
           salesReports: [...(selectedRequest.salesReports || []), newReport] 
@@ -102,13 +102,31 @@ export const PromoterPanel: React.FC = () => {
               </button>
 
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">Relatório de Sell-Out</h2>
-                  <p className="text-gray-500">Preencha os dados da ação realizada no parceiro <strong>{selectedRequest.partnerCode}</strong>.</p>
+                  <div className="flex justify-between items-start">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Relatório de Sell-Out</h2>
+                        <p className="text-gray-500">Parceiro <strong>{selectedRequest.partnerCode}</strong></p>
+                    </div>
+                    <div className="text-right">
+                         <div className="text-xs font-bold text-gray-400 uppercase mb-1">Progresso</div>
+                         <div className={`text-2xl font-bold ${reportStatus.isComplete ? 'text-green-600' : 'text-pink-600'}`}>
+                             {reportStatus.current} <span className="text-gray-400 text-lg">/ {reportStatus.total}</span>
+                         </div>
+                    </div>
+                  </div>
                   
+                  {/* Progress Bar */}
+                  <div className="mt-4 w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                      <div 
+                        className={`h-full transition-all duration-500 ${reportStatus.isComplete ? 'bg-green-500' : 'bg-pink-500'}`} 
+                        style={{ width: `${(reportStatus.current / reportStatus.total) * 100}%` }}
+                      ></div>
+                  </div>
+
                   <div className="mt-4 flex gap-4 text-sm bg-gray-50 p-3 rounded-lg">
                       <div className="flex items-center gap-2">
                           <Calendar size={16} className="text-pink-500"/>
-                          <span className="font-bold text-gray-700">Data Ação: {new Date(selectedRequest.dateOfAction).toLocaleDateString()}</span>
+                          <span className="font-bold text-gray-700">Início: {new Date(selectedRequest.dateOfAction).toLocaleDateString()}</span>
                       </div>
                       <div className="flex items-center gap-2">
                           <Store size={16} className="text-pink-500"/>
@@ -117,22 +135,23 @@ export const PromoterPanel: React.FC = () => {
                   </div>
               </div>
 
-              {/* DUPLICATE REPORT CHECK */}
-              {hasReportedToday ? (
-                  <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center mb-8 shadow-sm">
+              {/* COMPLETION CHECK */}
+              {reportStatus.isComplete ? (
+                  <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center mb-8 shadow-sm animate-in fade-in">
                       <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                           <CheckCircle size={32} className="text-green-600"/>
                       </div>
-                      <h3 className="text-xl font-bold text-green-800 mb-2">Relatório do Dia Enviado</h3>
-                      <p className="text-green-700 mb-6">Você já preencheu o relatório de Sell-Out para esta ação hoje.</p>
-                      <button disabled className="bg-gray-200 text-gray-500 px-6 py-3 rounded-xl font-bold flex items-center gap-2 mx-auto cursor-not-allowed">
-                          <Lock size={18}/> Concluído
+                      <h3 className="text-xl font-bold text-green-800 mb-2">Processo Finalizado</h3>
+                      <p className="text-green-700 mb-6">Todos os relatórios ({reportStatus.total} dias) foram enviados com sucesso.</p>
+                      <button disabled className="bg-white text-gray-400 border border-gray-200 px-6 py-3 rounded-xl font-bold flex items-center gap-2 mx-auto cursor-not-allowed">
+                          <Lock size={18}/> Ação Concluída
                       </button>
                   </div>
               ) : (
-                  <div className="bg-white rounded-2xl shadow-lg border border-pink-100 overflow-hidden">
-                      <div className="bg-pink-600 p-4 text-white font-bold text-lg flex items-center gap-2">
-                          <Save size={20}/> Novo Relatório
+                  <div className="bg-white rounded-2xl shadow-lg border border-pink-100 overflow-hidden animate-in fade-in">
+                      <div className="bg-pink-600 p-4 text-white font-bold text-lg flex items-center gap-2 justify-between">
+                          <div className="flex items-center gap-2"><Save size={20}/> Novo Relatório</div>
+                          <span className="text-xs bg-white/20 px-2 py-1 rounded">Relatório {reportStatus.current + 1} de {reportStatus.total}</span>
                       </div>
                       <div className="p-6">
                           <div className="grid md:grid-cols-2 gap-4 mb-6">
@@ -182,7 +201,7 @@ export const PromoterPanel: React.FC = () => {
                             onClick={submitReport}
                             className="w-full bg-pink-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-pink-700 transition transform hover:-translate-y-1"
                           >
-                              SALVAR RELATÓRIO
+                              SALVAR RELATÓRIO {reportStatus.current + 1}
                           </button>
                       </div>
                   </div>
@@ -200,7 +219,7 @@ export const PromoterPanel: React.FC = () => {
                                     <div className="text-xs text-gray-500">Vendedor: {r.sellerName} • {new Date(r.date).toLocaleDateString()}</div>
                                 </div>
                                 <div className="text-green-600 flex items-center gap-1 font-bold text-sm">
-                                    <CheckCircle size={16}/> Enviado
+                                    <CheckCircle size={16}/> Enviado ({i+1}/{reportStatus.total})
                                 </div>
                             </div>
                         ))}
@@ -242,7 +261,7 @@ export const PromoterPanel: React.FC = () => {
                   </div>
               ) : (
                   requests.map(req => {
-                      const alreadyReported = isReportedToday(req);
+                      const status = getReportStatus(req);
                       return (
                           <div key={req.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center group hover:border-pink-200 transition">
                               <div>
@@ -253,16 +272,16 @@ export const PromoterPanel: React.FC = () => {
                                   </div>
                                   <div className="text-xs text-pink-600 mt-2 font-medium">RCA: {req.rcaName}</div>
                               </div>
-                              {alreadyReported ? (
+                              {status.isComplete ? (
                                   <button disabled className="bg-green-100 text-green-700 px-6 py-3 rounded-xl font-bold cursor-not-allowed flex items-center gap-2">
-                                      <CheckCircle size={18}/> JÁ ENVIADO
+                                      <CheckCircle size={18}/> CONCLUÍDO TOTAL
                                   </button>
                               ) : (
                                   <button 
                                     onClick={() => setSelectedRequest(req)}
-                                    className="bg-pink-50 text-pink-600 px-6 py-3 rounded-xl font-bold hover:bg-pink-600 hover:text-white transition shadow-sm"
+                                    className="bg-pink-50 text-pink-600 px-6 py-3 rounded-xl font-bold hover:bg-pink-600 hover:text-white transition shadow-sm flex items-center gap-2"
                                   >
-                                      PREENCHER
+                                      <ListChecks size={18}/> PREENCHER ({status.current}/{status.total})
                                   </button>
                               )}
                           </div>
